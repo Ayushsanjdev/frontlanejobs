@@ -3,18 +3,21 @@ import {identity,boundedJson,failure} from '@/lib/auth-api';
 import {publishPublicJob,PublicJobError} from '@frontlanejobs/core/public-jobs';
 import {database} from '@frontlanejobs/database/client';
 import {ZodError} from 'zod';
+import {enforcePublicRead} from '@/lib/public-read-limits';
 export const runtime='nodejs';
 
 export async function GET(request:Request){
+  const limited=await enforcePublicRead(request);
+  if(limited)return limited;
   const params=new URL(request.url).searchParams;
   const id=params.get('id');
   if(id){
-    if(id.length>200)return Response.json({error:'Invalid job ID'},{status:400});
-    const {job,fallback}=await jobDetail(id);
-    return Response.json({job},{status:job?200:404,headers:{'Cache-Control':fallback?'no-store':'public,max-age=30,s-maxage=60'}});
+    if(id.length>200)return Response.json({error:'Invalid job ID'},{status:400,headers:{'Cache-Control':'no-store'}});
+    const {job}=await jobDetail(id);
+    return Response.json({job},{status:job?200:404,headers:{'Cache-Control':'no-store'}});
   }
   const result=await jobCollection(params);
-  return Response.json(result,{headers:{'Cache-Control':result.warning?'no-store':'public,max-age=30,s-maxage=60'}});
+  return Response.json(result,{headers:{'Cache-Control':'no-store'}});
 }
 
 export async function POST(request:Request){

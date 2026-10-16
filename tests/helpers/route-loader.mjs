@@ -29,6 +29,11 @@ export async function load(url,context,next){
   if(url===pathToFileURL(pathResolve(workspace,'packages/database/src/client.mjs')).href){
     return {format:'module',source:'export function database(){return globalThis.__frontlaneRouteTest.db}',shortCircuit:true};
   }
+  if(url===pathToFileURL(pathResolve(root,'lib/public-read-store.ts')).href){
+    return {format:'module',source:`process.env.PUBLIC_READ_LIMIT_SALT??='test-only-public-read-salt-32-characters';
+      const store={connect:async()=>({query:async sql=>({rows:sql.includes('clock_timestamp')?[{now:new Date().toISOString()}]:[]}),release(){}})};
+      export function publicReadStore(){return globalThis.__frontlaneRouteTest?.readLimitDb||store}`,shortCircuit:true};
+  }
   if(url.endsWith('.json'))return {format:'module',source:'export default '+await readFile(new URL(url),'utf8'),shortCircuit:true};
   if(url.endsWith('.ts')||url.endsWith('.tsx')){
     const source=await readFile(new URL(url),'utf8');

@@ -44,11 +44,11 @@ export default function Board({signedIn,initialCollection,initialType,initialPar
   useEffect(()=>{
     const controller=new AbortController();const timer=setTimeout(async()=>{setLoading(true);setError('');try{
       const response=await fetch((forYou?'/api/recommendations?':'/api/jobs?')+searchKey,{signal:controller.signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Could not refresh these jobs.');setSetup(!!data.needsPreferences);setCollection(data);if(!forYou)productEvent('search');
-    }catch(e){if((e as Error).name!=='AbortError')setError('Could not refresh these jobs. The previous results are shown below.')}finally{if(!controller.signal.aborted)setLoading(false)}},200);
+    }catch(e){if((e as Error).name!=='AbortError')setError((e as Error).message+' The previous results are shown below.')}finally{if(!controller.signal.aborted)setLoading(false)}},200);
     return()=>{clearTimeout(timer);controller.abort()};
   },[searchKey,forYou,retry]);
   const selectedId=params.get('job');
-  useEffect(()=>{if(!selectedId){setSelected(null);return}const controller=new AbortController();fetch('/api/jobs?id='+encodeURIComponent(selectedId),{signal:controller.signal}).then(async r=>{if(!r.ok)throw Error('This role is no longer available.');return r.json()}).then(data=>(setSelected(data.job),productEvent('role-view'))).catch(e=>{if(e.name!=='AbortError')setNotice(e.message)});return()=>controller.abort()},[selectedId]);
+  useEffect(()=>{if(!selectedId){setSelected(null);return}const controller=new AbortController();fetch('/api/jobs?id='+encodeURIComponent(selectedId),{signal:controller.signal}).then(async r=>{const data=await r.json();if(!r.ok)throw Error(data.error||(r.status===404?'This role is no longer available.':'Could not load this role. Please try again.'));return data}).then(data=>(setSelected(data.job),productEvent('role-view'))).catch(e=>{if(e.name!=='AbortError')setNotice(e.message)});return()=>controller.abort()},[selectedId]);
   async function save(job:Job){
     if(!signedIn){location.href='/signin?returnTo='+encodeURIComponent(basePath+'?'+search);return}
     if(saved.includes(job.id)){location.href='/tracker';return}setSaving(job.id);

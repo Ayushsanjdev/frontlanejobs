@@ -7,6 +7,7 @@
     "node": ">=22.13.0"
   },
   "exports": {
+    "./public-read-limits": "./src/public-read-limits.mjs",
     "./jobs": "./src/jobs.mjs",
     "./profile": "./src/profile.mjs",
     "./tracker": "./src/tracker.mjs",
